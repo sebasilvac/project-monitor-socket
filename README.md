@@ -1,159 +1,91 @@
-# Turborepo starter
+# NestJS Memory Monitor Dashboard
 
-This Turborepo starter is maintained by the Turborepo core team.
+Un dashboard de monitoreo en tiempo real creado con **React + Vite**, usando WebSockets para escuchar eventos de uso de memoria reportados por otras APIs construidas en **NestJS**.
 
-## Using this example
+El monitor ha sido diseñado con un estilo "Glassmorphism" y modo oscuro ultra moderno. Ahora permite **seleccionar y visualizar múltiples proyectos a la vez** y comparar su consumo de memoria simultáneamente.
 
-Run the following command:
+## Instalación y Ejecución del Dashboard
 
-```sh
-npx create-turbo@latest
+1. Instala las dependencias:
+```bash
+npm install
 ```
 
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+2. Corre el servidor de desarrollo:
+```bash
+npm run dev
 ```
 
-Without global `turbo`, use your package manager:
+El Frontend arrancará (por lo general en `http://localhost:5173`).
 
-```sh
-cd my-turborepo
-npx turbo build
-npm dlx turbo build
-npm exec turbo build
+---
+
+## 🚀 Guía Paso a Paso: Integrar una API NestJS al Monitor
+
+Cualquier proyecto de NestJS puede enviar sus métricas a este dashboard agregando un sencillo Gateway WebSocket. Sigue estos pasos en **cada una de tus APIs NestJS**:
+
+### 1. Instalar dependencias WebSocket
+En el proyecto NestJS, debes instalar el paquete de sockets:
+```bash
+npm install @nestjs/platform-socket.io @nestjs/websockets socket.io
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### 2. Crear el MemoryMonitorGateway
+Crea un archivo llamado `memory-monitor.gateway.ts` (por ejemplo, en un módulo global o `app.module.ts`) con el siguiente código:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+```typescript
+import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { OnModuleInit } from '@nestjs/common';
+import { Server } from 'socket.io';
 
-```sh
-turbo build --filter=docs
+// El frontend local intentará conectarse al puerto 3010 por defecto,
+// pero puedes ajustar los puertos en el archivo App.tsx si decides cambiarlos.
+@WebSocketGateway(3010, { cors: true }) 
+export class MemoryMonitorGateway implements OnModuleInit {
+  @WebSocketServer()
+  server: Server;
+
+  onModuleInit() {
+    // Reportar las métricas de memoria cada 2 segundos
+    setInterval(() => {
+      const memoryData = process.memoryUsage();
+      
+      this.server.emit('memory_stats', {
+        timestamp: new Date().toISOString(),
+        heapUsed: memoryData.heapUsed,
+        heapTotal: memoryData.heapTotal,
+        rss: memoryData.rss,
+        external: memoryData.external,
+      });
+    }, 2000); 
+  }
+}
 ```
 
-Without global `turbo`:
+### 3. Declararlo como Proveedor
+Asegúrate de agregar este Provider a la configuración de tu módulo, usualmente en `app.module.ts`:
 
-```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
+```typescript
+import { Module } from '@nestjs/common';
+import { MemoryMonitorGateway } from './memory-monitor.gateway';
+
+@Module({
+  imports: [],
+  providers: [MemoryMonitorGateway], // <-- Agregado aquí
+})
+export class AppModule {}
 ```
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
+### 4. Reinicia tu API NestJS
+Levanta tu proyecto NestJS de nuevo:
+```bash
+npm run start:dev
 ```
 
-Without global `turbo`, use your package manager:
+¡Eso es todo! Ahora el proyecto en NestJS estará emitiendo sus métricas por WebSockets. Si tu backend y el monitor están corriendo al mismo tiempo, el panel en el Dashboard Vite automáticamente dejará de mostrar *Mock Data* y pasará al estado **🟢 Live**, graficando el consumo real de tu API.
 
-```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
-```
+---
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## 🎨 Modo Prueba (Mock Data) Incorporado
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+Si accedes al dashboard pero los proyectos backend en NestJS no están funcionando, el frontend utilizará simuladores aleatorios que imitan el comportamiento de la RAM. De este modo, puedes ver el funcionamiento completo de la interfaz, curvas de la memoria, y visualización multiproyectos en cualquier momento sin necesidad de tener el backend listo.
