@@ -25,10 +25,13 @@ El Frontend arrancará (por lo general en `http://localhost:5173`).
 Cualquier proyecto de NestJS puede enviar sus métricas a este dashboard agregando un sencillo Gateway WebSocket. Sigue estos pasos en **cada una de tus APIs NestJS**:
 
 ### 1. Instalar dependencias WebSocket
-En el proyecto NestJS, debes instalar el paquete de sockets:
+En el proyecto NestJS, debes instalar el paquete de sockets.
+
+> **Importante para NestJS 10:** Asegúrate de instalar la versión correspondiente de los paquetes de sockets para mantener compatibilidad con el framework.
 ```bash
-npm install @nestjs/platform-socket.io @nestjs/websockets socket.io
+npm install @nestjs/platform-socket.io@^10.0.0 @nestjs/websockets@^10.0.0 socket.io
 ```
+*(Si usas NestJS 11 o superior, puedes quitar `@^10.0.0` y dejar que NPM instale la última versión).*
 
 ### 2. Crear el MemoryMonitorGateway
 Crea un archivo llamado `memory-monitor.gateway.ts` (por ejemplo, en un módulo global o `app.module.ts`) con el siguiente código:
