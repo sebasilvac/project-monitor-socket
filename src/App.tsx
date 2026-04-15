@@ -15,7 +15,7 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  ReferenceLine
+  Legend
 } from 'recharts';
 import { io } from 'socket.io-client';
 
@@ -120,26 +120,35 @@ function ProjectDashboard({
         </div>
       </div>
 
-      <div className="chart-container" style={{ height: '240px', marginTop: 0 }}>
+      <div className="chart-container" style={{ height: '300px', marginTop: '1rem' }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id={`colorUsed-${project.id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.4}/>
+                <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.6}/>
                 <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id={`colorTotal-${project.id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--accent-purple)" stopOpacity={0.2}/>
+                <stop offset="5%" stopColor="var(--accent-purple)" stopOpacity={0.4}/>
                 <stop offset="95%" stopColor="var(--accent-purple)" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id={`colorRss-${project.id}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--accent-green)" stopOpacity={0.2}/>
+                <stop offset="95%" stopColor="var(--accent-green)" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis dataKey="timeLabel" stroke="var(--text-muted)" fontSize={11} tickMargin={10} tickFormatter={(v, i) => i % 3 === 0 ? v : ''} />
-            <YAxis stroke="var(--text-muted)" fontSize={11} tickFormatter={(v) => `${v}MB`} />
-            <Tooltip contentStyle={{ backgroundColor: 'rgba(20, 25, 40, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', color: '#fff' }} itemStyle={{ color: '#fff' }} />
-            <ReferenceLine y={currentStats?.heapTotalMb || 0} stroke="rgba(239, 68, 68, 0.3)" strokeDasharray="3 3" />
-            <Area type="monotone" dataKey="heapTotalMb" name="Heap Total (MB)" stroke="var(--accent-purple)" strokeWidth={2} fillOpacity={1} fill={`url(#colorTotal-${project.id})`} isAnimationActive={false} />
-            <Area type="monotone" dataKey="heapUsedMb" name="Heap Used (MB)" stroke="var(--accent-blue)" strokeWidth={3} fillOpacity={1} fill={`url(#colorUsed-${project.id})`} isAnimationActive={false} />
+            <YAxis stroke="var(--text-muted)" fontSize={11} tickFormatter={(v) => `${v} MB`} />
+            <Tooltip 
+              contentStyle={{ backgroundColor: 'rgba(20, 25, 40, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)', color: '#fff' }} 
+              itemStyle={{ fontSize: '13px', padding: '2px 0' }} 
+            />
+            <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '13px', paddingBottom: '10px' }} />
+            
+            <Area type="monotone" dataKey="rssMb" name="RSS (Total en RAM)" stroke="var(--accent-green)" strokeWidth={2} fillOpacity={1} fill={`url(#colorRss-${project.id})`} isAnimationActive={false} />
+            <Area type="monotone" dataKey="heapTotalMb" name="Heap Total (Reserva V8)" stroke="var(--accent-purple)" strokeWidth={2} fillOpacity={1} fill={`url(#colorTotal-${project.id})`} isAnimationActive={false} />
+            <Area type="monotone" dataKey="heapUsedMb" name="Heap Usado (Activo)" stroke="var(--accent-blue)" strokeWidth={3} fillOpacity={1} fill={`url(#colorUsed-${project.id})`} isAnimationActive={false} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
